@@ -27,7 +27,7 @@ class LoRALinear(nn.Module):
         device = original_linear.weight.device
         self.A = nn.Parameter(torch.empty(r, in_dim, device=device))
         self.B = nn.Parameter(torch.zeros(out_dim, r, device=device))
-        
+
         # Initialise A with He initialization
         nn.init.kaiming_normal_(self.A, nonlinearity="linear")
 
