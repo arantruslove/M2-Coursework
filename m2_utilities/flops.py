@@ -115,19 +115,19 @@ def swish():
 
 def ffn(n_inputs, d_model, hidden_size):
     """
-    Compute FLOPS for the feed-forwards network applied to all input tokens. FFN
-    contains no biases in Qwen2.5.
+    Compute FLOPS for the feed-forwards network applied to all input tokens. FFN uses
+    SwiGLU activation and contains no biases in Qwen2.5.
     """
     # FFN applied to a single token
-    w_flops = matmul(hidden_size, d_model, 1)
+    w1_flops = matmul(hidden_size, d_model, 1)
     swish_flops = hidden_size * swish()
-    v_flops = matmul(hidden_size, d_model, 1)
+    w2_flops = matmul(hidden_size, d_model, 1)
     element_wise_flops = hidden_size
-    w2_flops = matmul(d_model, hidden_size, 1)
+    w3_flops = matmul(d_model, hidden_size, 1)
 
     # Multiply by number of inputs
     total_flops = n_inputs * (
-        w_flops + swish_flops + v_flops + element_wise_flops + w2_flops
+        w1_flops + swish_flops + w2_flops + element_wise_flops + w3_flops
     )
     return total_flops
 
@@ -138,7 +138,13 @@ def final_linear(vocab_size, d_model):
 
 
 def compute_flops(
-    n_inputs, n_layers=24, n_heads=14, vocab_size=151646, d_model=896, hidden_size=4864
+    n_inputs,
+    n_layers=24,
+    n_heads=14,
+    vocab_size=151646,
+    d_model=896,
+    hidden_size=4864,
+    backpropagate=False,
 ):
     """Compute FLOPS for a forward pass of the network."""
 
@@ -159,4 +165,6 @@ def compute_flops(
     total_flops += final_linear(vocab_size, d_model)
     total_flops += softmax(vocab_size)
 
+    if backpropagate:
+        return 3 * total_flops
     return total_flops
