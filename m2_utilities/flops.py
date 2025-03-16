@@ -129,7 +129,7 @@ def ffn(n_inputs, d_model, hidden_size):
     return total_flops
 
 
-def final_linear(vocab_size, d_model):
+def final_linear(d_model, vocab_size):
     """Compute FLOPS for the final linear transformation."""
     return matmul(vocab_size, d_model, 1)
 
@@ -159,8 +159,9 @@ def compute_flops(
         total_flops += ffn(n_inputs, d_model, hidden_size)
         total_flops += add_residual(n_inputs, d_model)
 
-    total_flops += final_linear(vocab_size, d_model)
-    total_flops += softmax(vocab_size)
+    total_flops += rms_norm(n_inputs, d_model)
+    total_flops += n_inputs * final_linear(d_model, vocab_size)
+    total_flops += n_inputs * softmax(vocab_size)
 
     if backpropagate:
         return 3 * total_flops
