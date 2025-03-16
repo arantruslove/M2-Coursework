@@ -11,11 +11,8 @@ def dot_product(n):
 
 def embedding(n_inputs, vocab_size, d_model):
     """Compute the number of FLOPS in the embedding layers."""
-    # Token embedding (check this)
-    token_flops = matmul(n_inputs, vocab_size, d_model)
-    # Adding positional embedding
     positional_flops = n_inputs * d_model
-    return token_flops + positional_flops
+    return positional_flops
 
 
 def attention_value(n_inputs, d_h, d_model):
