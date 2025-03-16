@@ -9,7 +9,7 @@ def dot_product(n):
     return matmul(1, n, 1)
 
 
-def embedding(n_inputs, vocab_size, d_model):
+def embedding(n_inputs, d_model):
     """Compute the number of FLOPS in the embedding layers."""
     positional_flops = n_inputs * d_model
     return positional_flops
@@ -145,7 +145,7 @@ def compute_flops(
 ):
     """Compute FLOPS for a forward pass of the network."""
 
-    total_flops = embedding(n_inputs, vocab_size, d_model)
+    total_flops = embedding(n_inputs, d_model)
 
     # Self-attention layers
     for _ in range(n_layers):
