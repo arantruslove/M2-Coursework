@@ -134,6 +134,20 @@ def final_linear(d_model, vocab_size):
     return matmul(vocab_size, d_model, 1)
 
 
+def block(n_inputs, n_heads, d_model, hidden_size):
+    """Compute FLOPS for a single self-attention block."""
+    # Multi-head self-attention
+    total_flops = rms_norm(n_inputs, d_model)
+    total_flops += multi_head_self_attention(n_inputs, n_heads, d_model)
+    total_flops += add_residual(n_inputs, d_model)
+
+    # Feed-forward network
+    total_flops += rms_norm(n_inputs, d_model)
+    total_flops += ffn(n_inputs, d_model, hidden_size)
+    total_flops += add_residual(n_inputs, d_model)
+    return total_flops
+
+
 def compute_flops(
     n_inputs,
     n_layers=24,
@@ -147,17 +161,9 @@ def compute_flops(
 
     total_flops = embedding(n_inputs, d_model)
 
-    # Self-attention layers
+    # Self-attention blocks
     for _ in range(n_layers):
-        # Multi-head self-attention
-        total_flops += rms_norm(n_inputs, d_model)
-        total_flops += multi_head_self_attention(n_inputs, n_heads, d_model)
-        total_flops += add_residual(n_inputs, d_model)
-
-        # FFN
-        total_flops += rms_norm(n_inputs, d_model)
-        total_flops += ffn(n_inputs, d_model, hidden_size)
-        total_flops += add_residual(n_inputs, d_model)
+        total_flops += block(n_inputs, n_heads, d_model, hidden_size)
 
     total_flops += rms_norm(n_inputs, d_model)
     total_flops += n_inputs * final_linear(d_model, vocab_size)
