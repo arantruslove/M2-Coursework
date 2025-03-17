@@ -9,16 +9,16 @@ def dot_product(n):
     return matmul(1, n, 1)
 
 
-def embedding(n_inputs, d_model):
+def embedding(n_tokens, d_model):
     """Compute the number of FLOPS in the embedding layers."""
-    positional_flops = n_inputs * d_model
+    positional_flops = n_tokens * d_model
     return positional_flops
 
 
-def attention_value(n_inputs, d_h, d_model):
+def attention_value(n_tokens, d_h, d_model):
     """Compute the number of FLOPS for determining a query, key, or value vector."""
     single_value_flops = matmul(d_h, d_model, 1) + d_h
-    return n_inputs * single_value_flops
+    return n_tokens * single_value_flops
 
 
 def softmax(vector_size):
@@ -30,43 +30,43 @@ def softmax(vector_size):
     return expon_flops + sum_flops + division_flops
 
 
-def weighted_sum_values(n_inputs, d_h):
+def weighted_sum_values(n_tokens, d_h):
     """
     Compute the number of FLOPS for calculating the weights average of values associated
     with a single token.
     """
     # Product of each vector with its attention coefficient
-    product_flops = n_inputs * d_h
+    product_flops = n_tokens * d_h
 
     # Summing the resulting vectors
-    sum_flops = (n_inputs - 1) * d_h
+    sum_flops = (n_tokens - 1) * d_h
 
     return product_flops + sum_flops
 
 
-def multi_head_self_attention(n_inputs, n_heads, d_model):
+def multi_head_self_attention(n_tokens, n_heads, d_model):
     """Compute the number of FLOPS in a single multi-head self-attention layer."""
     # Head size (query/key/value size)
     d_h = d_model / n_heads
 
     # Compute queries, keys, and values
-    attention_value_flops = 3 * attention_value(n_inputs, d_h, d_model)
+    attention_value_flops = 3 * attention_value(n_tokens, d_h, d_model)
 
     # Query-key dot products
-    qk_dot_flops = dot_product(d_h) * n_inputs**2
+    qk_dot_flops = dot_product(d_h) * n_tokens**2
 
     # Divide attention value by sqrt of head size
     sqrt_flops = 10
-    divide_flops = n_inputs**2
+    divide_flops = n_tokens**2
 
     # Overall Softmax operation
-    softmax_flops = sqrt_flops + divide_flops + n_inputs * softmax(n_inputs)
+    softmax_flops = sqrt_flops + divide_flops + n_tokens * softmax(n_tokens)
 
     # Compute output values after self-attention is applied
-    ouput_vals_flops = n_inputs * weighted_sum_values(n_inputs, d_h)
+    ouput_vals_flops = n_tokens * weighted_sum_values(n_tokens, d_h)
 
     # Final linear projection of concatenated heads
-    linear_projection_flops = n_inputs * matmul(d_model, d_model, 1)
+    linear_projection_flops = n_tokens * matmul(d_model, d_model, 1)
 
     # Multiplying by the number of heads
     total_flops = (
@@ -77,7 +77,7 @@ def multi_head_self_attention(n_inputs, n_heads, d_model):
     return total_flops
 
 
-def rms_norm(n_inputs, d_model):
+def rms_norm(n_tokens, d_model):
     """Compute the FLOPS for RMS normalisation."""
     # Compute the RMS coefficient of the vector
     square_flops = d_model * 10
@@ -94,13 +94,13 @@ def rms_norm(n_inputs, d_model):
     multiply_flops = d_model
 
     # Multiply by the number of input tokens
-    total_flops = n_inputs * (rms_flops + divide_features_flops + multiply_flops)
+    total_flops = n_tokens * (rms_flops + divide_features_flops + multiply_flops)
     return total_flops
 
 
-def add_residual(n_inputs, d_model):
+def add_residual(n_tokens, d_model):
     """Compute FLOPS for adding back the residual."""
-    return n_inputs * d_model
+    return n_tokens * d_model
 
 
 def swish():
@@ -110,7 +110,7 @@ def swish():
     return denominator_flops + divide_flops
 
 
-def ffn(n_inputs, d_model, hidden_size):
+def ffn(n_tokens, d_model, hidden_size):
     """
     Compute FLOPS for the feed-forwards network applied to all input tokens. FFN uses
     SwiGLU activation and contains no biases in Qwen2.5.
@@ -123,7 +123,7 @@ def ffn(n_inputs, d_model, hidden_size):
     w3_flops = matmul(d_model, hidden_size, 1)
 
     # Multiply by number of inputs
-    total_flops = n_inputs * (
+    total_flops = n_tokens * (
         w1_flops + swish_flops + w2_flops + element_wise_flops + w3_flops
     )
     return total_flops
@@ -134,22 +134,22 @@ def final_linear(d_model, vocab_size):
     return matmul(vocab_size, d_model, 1)
 
 
-def block(n_inputs, n_heads, d_model, hidden_size):
+def block(n_tokens, n_heads, d_model, hidden_size):
     """Compute FLOPS for a single self-attention block."""
     # Multi-head self-attention
-    total_flops = rms_norm(n_inputs, d_model)
-    total_flops += multi_head_self_attention(n_inputs, n_heads, d_model)
-    total_flops += add_residual(n_inputs, d_model)
+    total_flops = rms_norm(n_tokens, d_model)
+    total_flops += multi_head_self_attention(n_tokens, n_heads, d_model)
+    total_flops += add_residual(n_tokens, d_model)
 
     # Feed-forward network
-    total_flops += rms_norm(n_inputs, d_model)
-    total_flops += ffn(n_inputs, d_model, hidden_size)
-    total_flops += add_residual(n_inputs, d_model)
+    total_flops += rms_norm(n_tokens, d_model)
+    total_flops += ffn(n_tokens, d_model, hidden_size)
+    total_flops += add_residual(n_tokens, d_model)
     return total_flops
 
 
 def compute_flops(
-    n_inputs,
+    n_tokens,
     n_layers=24,
     n_heads=14,
     vocab_size=151646,
@@ -159,15 +159,15 @@ def compute_flops(
 ):
     """Compute FLOPS for a forward pass of the network."""
 
-    total_flops = embedding(n_inputs, d_model)
+    total_flops = embedding(n_tokens, d_model)
 
     # Self-attention blocks
     for _ in range(n_layers):
-        total_flops += block(n_inputs, n_heads, d_model, hidden_size)
+        total_flops += block(n_tokens, n_heads, d_model, hidden_size)
 
-    total_flops += rms_norm(n_inputs, d_model)
-    total_flops += n_inputs * final_linear(d_model, vocab_size)
-    total_flops += n_inputs * softmax(vocab_size)
+    total_flops += rms_norm(n_tokens, d_model)
+    total_flops += n_tokens * final_linear(d_model, vocab_size)
+    total_flops += n_tokens * softmax(vocab_size)
 
     if backpropagate:
         return 3 * total_flops
