@@ -11,50 +11,40 @@ def string_dp(val, decimals):
     return f"{val:.{decimals}f}"
 
 
-def stringify(trajectories, decimals):
+def stringify(trajectory, decimals):
     """
-    Stringify the trajectories. Uses commas to separate between predator and prey
+    Stringify the trajectory. Uses commas to separate between predator and prey
     values. Uses semicolons to separate between time points.
     """
-    # Convert to strings with a fixed number of dcimal places
-    stringified = []
-    for trajectory in trajectories:
-        trajectory_str = ""
-        for pred, prey in trajectory:
-            trajectory_str += (
-                string_dp(pred, decimals) + "," + string_dp(prey, decimals) + ";"
-            )
 
-        # Remove final semicolon and add to the list
-        stringified.append(trajectory_str[:-1])
+    stringified = ""
+    for pred, prey in trajectory:
+        stringified += string_dp(pred, decimals) + "," + string_dp(prey, decimals) + ";"
 
     # Remove the final semicolon and return
-    return stringified
+    return stringified[:-1]
 
 
 def destringify(stringified):
     """Convert string format predator and prey positions to numerical format."""
-    destringified = []
-    for str_trajectory in stringified:
-        num_trajectory = []
-        for elem in str_trajectory.split(";"):
-            pred, prey = elem.split(",")
-            pred, prey = float(pred), float(prey)
-            num_trajectory.append([pred, prey])
-        destringified.append(num_trajectory)
+    num_trajectory = []
+    for point in stringified.split(";"):
+        pred, prey = point.split(",")
+        pred, prey = float(pred), float(prey)
+        num_trajectory.append([pred, prey])
 
-    return torch.tensor(destringified)
+    return torch.tensor(num_trajectory)
 
 
-def tokenize(trajectories, decimals):
-    """Convert numerical trajectories to Qwen2.5 token representations."""
-    stringified = stringify(trajectories, decimals)
-    tokens = tokenizer(stringified, return_tensors="pt")["input_ids"]
+def tokenize(trajectory, decimals):
+    """Convert numerical trajectory to Qwen2.5 token representations."""
+    stringified = stringify(trajectory, decimals)
+    tokens = tokenizer(stringified, return_tensors="pt")["input_ids"][0]
     return tokens
 
 
 def detokenize(tokens):
     """Convert Qwen2.5 tokens to numerical trajectories."""
-    stringified = tokenizer.batch_decode(tokens, skip_special_tokens=True)
-    num_trajectories = destringify(stringified)
-    return num_trajectories
+    stringified = tokenizer.decode(tokens, skip_special_tokens=True)
+    trajectory = destringify(stringified)
+    return trajectory
