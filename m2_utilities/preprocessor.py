@@ -63,3 +63,16 @@ def trim_sequence(tokens):
         # If the final token is not a semicolon but is a complete timestep
         return tokens
     return tokens[:last]
+
+
+def validate_sequence(tokens):
+    """
+    Ensure that the sequence only contains valid tokens. Tokens 15-24 correspond to
+    integers 0-9. 11 corresponds to ',', 13 corresponds to '.' and 26 corresponds to ';'.
+    """
+    VALID_TOKENS = {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 11, 13, 26}
+
+    tokens_list = tokens.tolist()
+    for token in tokens_list:
+        if token not in VALID_TOKENS:
+            raise ValueError(f"Sequence contains '{token}' which is not a valid token.")
