@@ -51,7 +51,5 @@ def process_sequences(texts, tokenizer, max_length=512, stride=256):
                         torch.full((max_length - len(chunk),), tokenizer.pad_token_id),
                     ]
                 )
-
-            print(chunk.shape)
             all_input_ids.append(chunk)
     return torch.stack(all_input_ids)
