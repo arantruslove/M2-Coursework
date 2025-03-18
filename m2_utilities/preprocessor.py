@@ -1,9 +1,20 @@
 import torch
 from transformers import AutoTokenizer
+import h5py
 
 # Initialising the tokenizer
 MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+
+def load_trajectories(data_path):
+    with h5py.File(data_path, "r") as f:
+        # Access the trajectories
+        trajectories = f["trajectories"][:]
+
+        # Converting to a torch tensor
+        trajectories = torch.from_numpy(trajectories)
+    return trajectories
 
 
 def string_dp(val, decimals):
@@ -48,6 +59,20 @@ def detokenize(tokens):
     stringified = tokenizer.decode(tokens, skip_special_tokens=True)
     trajectory = destringify(stringified)
     return trajectory
+
+
+def load_and_preprocess(data_path, alpha, decimals):
+    """Load and stringify the trajectories dataset."""
+    # Load and scale
+    trajectories = load_trajectories(data_path)
+    trajectories /= alpha
+
+    # Stringify
+    texts = []
+    for trajectory in trajectories:
+        text = stringify(trajectory, decimals)
+        texts.append(text)
+    return texts
 
 
 def trim_sequence(tokens):
