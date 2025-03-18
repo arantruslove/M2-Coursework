@@ -48,3 +48,18 @@ def detokenize(tokens):
     stringified = tokenizer.decode(tokens, skip_special_tokens=True)
     trajectory = destringify(stringified)
     return trajectory
+
+
+def trim_sequence(tokens):
+    """Truncate the sequence so that there are no incomplete timesteps."""
+    # Locate the first semicolon to determine the width of a single timestep
+    SEMICOLON_TOKEN = 26
+    indices = torch.where(tokens == SEMICOLON_TOKEN)[0]
+
+    first = torch.min(indices).item()
+    last = torch.max(indices).item()
+
+    if (len(tokens) + 1) % (first + 1) == 0:
+        # If the final token is not a semicolon but is a complete timestep
+        return tokens
+    return tokens[:last]
