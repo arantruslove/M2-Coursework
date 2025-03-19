@@ -7,16 +7,6 @@ MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
 
-def load_trajectories(data_path):
-    with h5py.File(data_path, "r") as f:
-        # Access the trajectories
-        trajectories = f["trajectories"][:]
-
-        # Converting to a torch tensor
-        trajectories = torch.from_numpy(trajectories)
-    return trajectories
-
-
 def string_dp(val, decimals):
     """Convert a float to a string with a fixed number of decimal places."""
     return f"{val:.{decimals}f}"
@@ -27,19 +17,27 @@ def stringify(trajectory, decimals):
     Stringify the trajectory. Uses commas to separate between predator and prey
     values. Uses semicolons to separate between time points.
     """
-
-    stringified = ""
+    text = ""
     for pred, prey in trajectory:
-        stringified += string_dp(pred, decimals) + "," + string_dp(prey, decimals) + ";"
+        text += string_dp(pred, decimals) + "," + string_dp(prey, decimals) + ";"
 
     # Remove the final semicolon and return
-    return stringified[:-1]
+    return text[:-1]
 
 
-def destringify(stringified):
+def batch_stringify(trajectories, decimals):
+    """Stringify a batch of trajectories to return a list of strings."""
+    texts = []
+    for trajectory in trajectories:
+        text = stringify(trajectory, decimals)
+        texts.append(text)
+    return texts
+
+
+def destringify(text):
     """Convert string format predator and prey positions to numerical format."""
     num_trajectory = []
-    for point in stringified.split(";"):
+    for point in text.split(";"):
         pred, prey = point.split(",")
         pred, prey = float(pred), float(prey)
         num_trajectory.append([pred, prey])
@@ -47,32 +45,14 @@ def destringify(stringified):
     return torch.tensor(num_trajectory)
 
 
-def tokenize(trajectory, decimals):
-    """Convert numerical trajectory to Qwen2.5 token representations."""
-    stringified = stringify(trajectory, decimals)
-    tokens = tokenizer(stringified, return_tensors="pt")["input_ids"][0]
-    return tokens
+def batch_destringify(texts):
+    """Destringify a batch of texts to return an array of numberical trajectories"""
+    trajectories = []
+    for text in texts:
+        trajectory = destringify(text)
+        trajectories.append(trajectory)
 
-
-def detokenize(tokens):
-    """Convert Qwen2.5 tokens to numerical trajectories."""
-    stringified = tokenizer.decode(tokens, skip_special_tokens=True)
-    trajectory = destringify(stringified)
-    return trajectory
-
-
-def load_and_preprocess(data_path, alpha, decimals):
-    """Load and stringify the trajectories dataset."""
-    # Load and scale
-    trajectories = load_trajectories(data_path)
-    trajectories /= alpha
-
-    # Stringify
-    texts = []
-    for trajectory in trajectories:
-        text = stringify(trajectory, decimals)
-        texts.append(text)
-    return texts
+    return torch.stack(trajectories)
 
 
 def trim_sequence(tokens):
