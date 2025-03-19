@@ -150,9 +150,10 @@ def block(n_tokens, n_heads, d_model, hidden_size):
 
 def compute_flops(
     n_tokens,
+    batch_size=1,
     n_layers=24,
     n_heads=14,
-    vocab_size=151646,
+    vocab_size=151936,
     d_model=896,
     hidden_size=4864,
     backpropagate=False,
@@ -168,6 +169,9 @@ def compute_flops(
     total_flops += rms_norm(n_tokens, d_model)
     total_flops += n_tokens * final_linear(d_model, vocab_size)
     total_flops += n_tokens * softmax(vocab_size)
+
+    # Multiplying by batch size
+    total_flops *= batch_size
 
     if backpropagate:
         return 3 * total_flops
