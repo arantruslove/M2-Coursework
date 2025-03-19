@@ -21,13 +21,13 @@ def attention_value(n_tokens, d_h, d_model):
     return n_tokens * single_value_flops
 
 
-def softmax(vector_size):
+def softmax(n_tokens, vector_size):
     """Compute the number of FLOPS for applying Softmax to a vector."""
     expon_flops = vector_size * 10
     sum_flops = vector_size - 1
     division_flops = vector_size
 
-    return expon_flops + sum_flops + division_flops
+    return n_tokens * (expon_flops + sum_flops + division_flops)
 
 
 def weighted_sum_values(n_tokens, d_h):
@@ -60,7 +60,7 @@ def multi_head_self_attention(n_tokens, n_heads, d_model):
     divide_flops = n_tokens**2
 
     # Overall Softmax operation
-    softmax_flops = sqrt_flops + divide_flops + n_tokens * softmax(n_tokens)
+    softmax_flops = sqrt_flops + divide_flops + softmax(n_tokens, n_tokens)
 
     # Compute output values after self-attention is applied
     ouput_vals_flops = n_tokens * weighted_sum_values(n_tokens, d_h)
@@ -129,9 +129,9 @@ def ffn(n_tokens, d_model, hidden_size):
     return total_flops
 
 
-def final_linear(d_model, vocab_size):
+def final_linear(n_tokens, d_model, vocab_size):
     """Compute FLOPS for the final linear transformation."""
-    return matmul(vocab_size, d_model, 1) + vocab_size
+    return matmul(vocab_size, d_model, n_tokens) + n_tokens * vocab_size
 
 
 def block(n_tokens, n_heads, d_model, hidden_size):
@@ -167,9 +167,8 @@ def compute_flops(
         total_flops += block(n_tokens, n_heads, d_model, hidden_size)
 
     total_flops += rms_norm(n_tokens, d_model)
-    total_flops += n_tokens * final_linear(d_model, vocab_size)
-    total_flops += n_tokens * softmax(vocab_size)
-
+    total_flops += final_linear(n_tokens, d_model, vocab_size)
+    total_flops += softmax(n_tokens, vocab_size)
     # Multiplying by batch size
     total_flops *= batch_size
 
