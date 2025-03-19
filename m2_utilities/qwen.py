@@ -3,6 +3,7 @@ from transformers import AutoModelForCausalLM
 from accelerate import Accelerator
 from tqdm import tqdm
 from m2_utilities.preprocessor import get_tokenizer
+from m2_utilities.flops import compute_flops
 
 
 def load_qwen():
@@ -24,7 +25,9 @@ def load_qwen():
     return model, tokenizer
 
 
-def train(model, train_loader, val_loader, max_steps=10000, learning_rate=1e-5):
+def train(
+    model, train_loader, val_loader, max_steps=10000, learning_rate=1e-5, wandb=None
+):
 
     optimizer = torch.optim.Adam(
         (p for p in model.parameters() if p.requires_grad), lr=learning_rate
@@ -35,8 +38,10 @@ def train(model, train_loader, val_loader, max_steps=10000, learning_rate=1e-5):
         model, optimizer, train_loader, val_loader
     )
 
+    flops = 0
     steps = 0
     while steps < max_steps:
+
         # Train
         model.train()
         progress_bar = tqdm(train_loader, desc=f"Steps {steps}")
@@ -48,6 +53,12 @@ def train(model, train_loader, val_loader, max_steps=10000, learning_rate=1e-5):
             accelerator.backward(loss)
             optimizer.step()
             steps += 1
+
+            flops += compute_flops(batch.shape[1], batch.shape[0], backpropagate=True)
+
+            # Logging to wandb
+            if wandb:
+                wandb.log({"Loss": loss.item(), "Steps": steps, "Flops": flops})
 
             progress_bar.set_postfix(loss=loss.item())
             if steps > max_steps:
@@ -61,5 +72,14 @@ def train(model, train_loader, val_loader, max_steps=10000, learning_rate=1e-5):
                 outputs = model(batch, labels=batch)
                 loss = outputs.loss
                 val_loss += loss.item()
+
+                flops += compute_flops(
+                    batch.shape[1], batch.shape[0], backpropagate=False
+                )
+
+        # Logging to wandb
+        val_loss = val_loss / len(val_loader)
+        if wandb:
+            wandb.log({"Validation Loss": val_loss, "Flops": flops})
 
         print(f"Validation Loss: {val_loss / len(val_loader)}")
