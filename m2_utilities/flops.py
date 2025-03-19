@@ -11,8 +11,7 @@ def dot_product(n):
 
 def embedding(n_tokens, d_model):
     """Compute the number of FLOPS in the embedding layers."""
-    positional_flops = n_tokens * d_model
-    return positional_flops
+    return n_tokens * d_model
 
 
 def attention_value(n_tokens, d_h, d_model):
@@ -160,18 +159,24 @@ def compute_flops(
 ):
     """Compute FLOPS for a forward pass of the network."""
 
+    # Adding positional embeddings
     total_flops = embedding(n_tokens, d_model)
 
     # Self-attention blocks
     for _ in range(n_layers):
         total_flops += block(n_tokens, n_heads, d_model, hidden_size)
 
+    # Linear transformation and softmax
     total_flops += rms_norm(n_tokens, d_model)
     total_flops += final_linear(n_tokens, d_model, vocab_size)
     total_flops += softmax(n_tokens, vocab_size)
-    # Multiplying by batch size
+
+    # Multiply by batch size
     total_flops *= batch_size
 
+    # Forward + backprop
     if backpropagate:
         return 3 * total_flops
+
+    # Only forward
     return total_flops
