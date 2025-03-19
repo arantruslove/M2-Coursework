@@ -32,24 +32,3 @@ def apply_lora(model, lora_rank):
     for layer in model.model.layers:
         layer.self_attn.q_proj = LoRALinear(layer.self_attn.q_proj, r=lora_rank)
         layer.self_attn.v_proj = LoRALinear(layer.self_attn.v_proj, r=lora_rank)
-
-
-def process_sequences(texts, tokenizer, max_length=512, stride=256):
-    all_input_ids = []
-    for text in texts:
-        # Apply Qwen's tokenization scheme to the text:
-        encoding = tokenizer(text, return_tensors="pt", add_special_tokens=False)
-        seq_ids = encoding.input_ids[0]
-
-        # Create sliding windows to further divide the data into chunks:
-        for i in range(0, len(seq_ids), stride):
-            chunk = seq_ids[i : i + max_length]
-            if len(chunk) < max_length:
-                chunk = torch.cat(
-                    [
-                        chunk,
-                        torch.full((max_length - len(chunk),), tokenizer.pad_token_id),
-                    ]
-                )
-            all_input_ids.append(chunk)
-    return torch.stack(all_input_ids)

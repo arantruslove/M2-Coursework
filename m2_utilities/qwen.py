@@ -1,11 +1,12 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from m2_utilities.preprocessor import get_tokenizer
 
 
 def load_qwen():
     model_name = "Qwen/Qwen2.5-0.5B-Instruct"
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True)
+    tokenizer = get_tokenizer()
 
     # Freeze all parameters except LM head bias
     for param in model.parameters():

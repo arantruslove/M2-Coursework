@@ -1,10 +1,12 @@
 import torch
 from transformers import AutoTokenizer
-import h5py
 
-# Initialising the tokenizer
-MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+def get_tokenizer():
+    """Get the Qwen2.5 tokenizer."""
+    MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    return tokenizer
 
 
 def string_dp(val, decimals):
@@ -53,6 +55,31 @@ def batch_destringify(texts):
         trajectories.append(trajectory)
 
     return torch.stack(trajectories)
+
+
+def process_sequences(texts, max_length=512, stride=256):
+    """
+    Tokenize a batch of texts and splits into overlapping chunks using a sliding window.
+    """
+    all_input_ids = []
+    for text in texts:
+        # Apply Qwen's tokenization scheme to the text:
+        tokenizer = get_tokenizer()
+        encoding = tokenizer(text, return_tensors="pt", add_special_tokens=False)
+        seq_ids = encoding.input_ids[0]
+
+        # Create sliding windows to further divide the data into chunks:
+        for i in range(0, len(seq_ids), stride):
+            chunk = seq_ids[i : i + max_length]
+            if len(chunk) < max_length:
+                chunk = torch.cat(
+                    [
+                        chunk,
+                        torch.full((max_length - len(chunk),), tokenizer.pad_token_id),
+                    ]
+                )
+            all_input_ids.append(chunk)
+    return torch.stack(all_input_ids)
 
 
 def trim_sequence(tokens):
