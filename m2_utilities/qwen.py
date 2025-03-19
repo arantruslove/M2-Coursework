@@ -24,9 +24,30 @@ def load_qwen():
 
     return model, tokenizer
 
+def eval(model, test_loader, calc_flops=False):
+    """Evaluate model loss on test dataset."""
+
+    model.eval()
+    flops = 0
+    test_loss = 0.0
+    with torch.no_grad():
+        for (batch,) in test_loader:
+            outputs = model(batch, labels=batch)
+            loss = outputs.loss
+            test_loss += loss.item()
+
+            flops += compute_flops(
+                batch.shape[1], batch.shape[0], backpropagate=False
+            )
+    # Averaging over number of batches
+    test_loss = test_loss / len(test_loader)
+
+    if calc_flops:
+        return test_loss, flops
+    return test_loss
 
 def train(
-    model, train_loader, val_loader, max_steps=10000, learning_rate=1e-5, wandb=None
+    model, train_loader, val_loader, eval_interval=100, max_steps=10000, learning_rate=1e-5, wandb=None
 ):
 
     optimizer = torch.optim.Adam(
@@ -38,7 +59,7 @@ def train(
         model, optimizer, train_loader, val_loader
     )
 
-    flops = 0
+    total_flops = 0
     steps = 0
     while steps < max_steps:
 
@@ -53,33 +74,25 @@ def train(
             accelerator.backward(loss)
             optimizer.step()
             steps += 1
+            progress_bar.set_postfix(loss=loss.item())
 
-            flops += compute_flops(batch.shape[1], batch.shape[0], backpropagate=True)
+            total_flops += compute_flops(batch.shape[1], batch.shape[0], backpropagate=True)
 
             # Logging to wandb
             if wandb:
-                wandb.log({"Loss": loss.item(), "Steps": steps, "Flops": flops})
+                wandb.log({"Loss": loss.item(), "Flops": total_flops})
 
-            progress_bar.set_postfix(loss=loss.item())
+            # Evaluating on validation dataset
+            if steps % eval_interval == 0:
+                val_loss, val_flops = eval(model, val_loader, calc_flops=True)
+                total_flops += val_flops
+
+                # Logging to wandb
+                if wandb:
+                    wandb.log({"Validation Loss": val_loss, "Flops": total_flops})
+                
+                # Return to train mode
+                model.train()
+                
             if steps > max_steps:
                 break
-
-        # Evaluate on validation set
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for (batch,) in val_loader:
-                outputs = model(batch, labels=batch)
-                loss = outputs.loss
-                val_loss += loss.item()
-
-                flops += compute_flops(
-                    batch.shape[1], batch.shape[0], backpropagate=False
-                )
-
-        # Logging to wandb
-        val_loss = val_loss / len(val_loader)
-        if wandb:
-            wandb.log({"Validation Loss": val_loss, "Flops": flops})
-
-        print(f"Validation Loss: {val_loss / len(val_loader)}")
