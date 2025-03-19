@@ -57,14 +57,13 @@ def batch_destringify(texts):
     return torch.stack(trajectories)
 
 
-def process_sequences(texts, max_length=512, stride=256):
+def process_sequences(texts, tokenizer, max_length=512, stride=256):
     """
     Tokenize a batch of texts and splits into overlapping chunks using a sliding window.
     """
     all_input_ids = []
     for text in texts:
         # Apply Qwen's tokenization scheme to the text:
-        tokenizer = get_tokenizer()
         encoding = tokenizer(text, return_tensors="pt", add_special_tokens=False)
         seq_ids = encoding.input_ids[0]
 
