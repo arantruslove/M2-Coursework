@@ -131,7 +131,7 @@ def ffn(n_tokens, d_model, hidden_size):
 
 def final_linear(d_model, vocab_size):
     """Compute FLOPS for the final linear transformation."""
-    return matmul(vocab_size, d_model, 1)
+    return matmul(vocab_size, d_model, 1) + vocab_size
 
 
 def block(n_tokens, n_heads, d_model, hidden_size):
