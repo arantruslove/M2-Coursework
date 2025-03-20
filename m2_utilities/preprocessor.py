@@ -9,6 +9,23 @@ def get_tokenizer():
     return tokenizer
 
 
+tokenizer = get_tokenizer()
+
+
+def scale(trajectories):
+    """
+    Scale the trajectories such that the maximum value is less than 10 by dividing the
+    trajectories by the maximum value.
+    """
+    max_val = torch.max(trajectories).item()
+    if max_val >= 10.0:
+        EPSILON = 0.1  # To ensure that the scaled max is striclty less than 10
+        alpha = max_val / (10.0 - EPSILON)
+    else:
+        alpha = 1.0
+    return trajectories / alpha, alpha
+
+
 def string_dp(val, decimals):
     """Convert a float to a string with a fixed number of decimal places."""
     return f"{val:.{decimals}f}"
@@ -57,7 +74,18 @@ def batch_destringify(texts):
     return torch.stack(trajectories)
 
 
-def process_sequences(texts, tokenizer, max_length=512, stride=256):
+def batch_decode(batch_token_ids):
+    """
+    Decode a batch of token ids to restore the corresponding numerical trajectories.
+    """
+    texts = tokenizer.batch_decode(
+        batch_token_ids, return_tensors="pt", add_special_tokens=False
+    )
+    trajectories = batch_destringify(texts)
+    return trajectories
+
+
+def process_sequences(texts, max_length=512, stride=256):
     """
     Tokenize a batch of texts and splits into overlapping chunks using a sliding window.
     """
@@ -81,6 +109,48 @@ def process_sequences(texts, tokenizer, max_length=512, stride=256):
     return torch.stack(all_input_ids)
 
 
+class Preprocessor:
+    def __init__(self, decimals):
+        self.decimals = decimals
+        self.alpha = None
+
+    def encode(self, trajectories, max_length=512, stride=256):
+        """
+        Encode from numerical trajectories to token ids. Set scaling coefficient alpha.
+        Apply Chunking.
+        """
+        # Scale
+        scaled_trajectories, self.alpha = scale(trajectories)
+
+        # Stringify
+        texts = batch_stringify(scaled_trajectories, self.decimals)
+
+        # Tokenize and chunk
+        batch_token_ids = process_sequences(texts, max_length, stride)
+        return batch_token_ids
+
+    def decode(self, batch_token_ids):
+        """Restore the numerical trajectories from a batch of token ids."""
+        if self.alpha is None:
+            raise ValueError(
+                "Scaling factor 'alpha' is not set. Ensure 'encode' is called before "
+                "'decode'."
+            )
+
+        # Detokenize to text
+        texts = tokenizer.batch_decode(
+            batch_token_ids, return_tensors="pt", add_special_tokens=False
+        )
+
+        # Destringify
+        unscaled_trajectories = batch_destringify(texts)
+
+        # Rescale
+        rescaled_trajectories = unscaled_trajectories * self.alpha
+        return rescaled_trajectories
+
+
+# Functions to sanitzise and validate outputs of the Qwen2.5 model
 def trim_sequence(tokens):
     """Truncate the sequence so that there are no incomplete timesteps."""
     # Locate the first semicolon to determine the width of a single timestep
