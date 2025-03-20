@@ -1,7 +1,8 @@
 import torch
 from accelerate import Accelerator
 
-from m2_utilities.preprocessor import Preprocessor
+from m2_utilities.preprocessor import Preprocessor, batch_truncate_sequence
+from m2_utilities.stopping import stopping_criteria
 
 
 def calc_n_tokens(decimals):
@@ -17,18 +18,23 @@ def forecast_points(model, trajectories, n_forecast, decimals):
     """Forecast the final 'n_forecast' set of points in the trajectories."""
     # Process dataset into tokens
     preprocessor = Preprocessor(decimals)
-    input_token_ids = preprocessor.encode(trajectories)
+    input_ids = preprocessor.encode(trajectories)
 
     # Forecast future points
     accelerator = Accelerator()
-    input_token_ids = input_token_ids.to(accelerator.device)
+    input_ids = input_ids.to(accelerator.device)
 
-    max_tokens = n_forecast * calc_n_tokens(decimals)
-    output_token_ids = model.generate(
-        input_token_ids, max_new_tokens=max_tokens, do_sample=False
+    output_ids = model.generate(
+        input_ids,
+        max_new_tokens=1e6,
+        stopping_criteria=stopping_criteria(input_ids, n_forecast),
+        do_sample=False,
     )
 
-    forecast_trajectories = preprocessor.decode(output_token_ids)[:, -n_forecast:, :]
+    # Trim
+    output_ids = batch_truncate_sequence(output_ids, len(trajectories) + n_forecast)
+
+    forecast_trajectories = preprocessor.decode(output_ids)[:, -n_forecast:, :]
     return forecast_trajectories
 
 
