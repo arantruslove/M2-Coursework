@@ -24,6 +24,7 @@ def load_qwen():
 
     return model, tokenizer
 
+
 def eval(model, test_loader, calc_flops=False):
     """Evaluate model loss on test dataset."""
 
@@ -36,9 +37,7 @@ def eval(model, test_loader, calc_flops=False):
             loss = outputs.loss
             test_loss += loss.item()
 
-            flops += compute_flops(
-                batch.shape[1], batch.shape[0], backpropagate=False
-            )
+            flops += compute_flops(batch.shape[1], batch.shape[0], backpropagate=False)
     # Averaging over number of batches
     test_loss = test_loss / len(test_loader)
 
@@ -46,8 +45,15 @@ def eval(model, test_loader, calc_flops=False):
         return test_loss, flops
     return test_loss
 
+
 def train(
-    model, train_loader, val_loader, eval_interval=100, max_steps=10000, learning_rate=1e-5, wandb=None
+    model,
+    train_loader,
+    val_loader,
+    eval_interval=100,
+    max_steps=10000,
+    learning_rate=1e-5,
+    wandb=None,
 ):
 
     optimizer = torch.optim.Adam(
@@ -76,7 +82,9 @@ def train(
             steps += 1
             progress_bar.set_postfix(loss=loss.item())
 
-            total_flops += compute_flops(batch.shape[1], batch.shape[0], backpropagate=True)
+            total_flops += compute_flops(
+                batch.shape[1], batch.shape[0], backpropagate=True
+            )
 
             # Logging to wandb
             if wandb:
@@ -90,9 +98,9 @@ def train(
                 # Logging to wandb
                 if wandb:
                     wandb.log({"Validation Loss": val_loss, "Flops": total_flops})
-                
+
                 # Return to train mode
                 model.train()
-                
+
             if steps > max_steps:
                 break
