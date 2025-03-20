@@ -25,8 +25,7 @@ def forecast_points(model, trajectories, n_forecast, decimals):
         input_token_ids, max_new_tokens=max_tokens, do_sample=False
     )
 
-    # forecast_trajectories = preprocessor.decode(output_token_ids)[:, -n_forecast:, :]
-    forecast_trajectories = preprocessor.decode(output_token_ids)
+    forecast_trajectories = preprocessor.decode(output_token_ids)[:, -n_forecast:, :]
     return forecast_trajectories
 
 
