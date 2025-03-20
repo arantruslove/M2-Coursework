@@ -1,4 +1,5 @@
 import torch
+from accelerate import Accelerator
 
 from m2_utilities.preprocessor import Preprocessor
 
@@ -19,6 +20,9 @@ def forecast_points(model, trajectories, n_forecast, decimals):
     input_token_ids = preprocessor.encode(trajectories)
 
     # Forecast future points
+    accelerator = Accelerator()
+    input_token_ids = input_token_ids.to(accelerator.device)
+
     max_tokens = n_forecast * calc_n_tokens(decimals)
     output_token_ids = model.generate(
         input_token_ids, max_new_tokens=max_tokens, do_sample=False

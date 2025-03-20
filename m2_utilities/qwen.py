@@ -57,15 +57,14 @@ def train(
     learning_rate=1e-5,
     wandb=None,
 ):
-
     # Configuring optimizer
     optimizer = torch.optim.Adam(
         (p for p in model.parameters() if p.requires_grad), lr=learning_rate
     )
     # Prepare components with Accelerator
     accelerator = Accelerator()
-    model, optimizer, train_loader, val_loader = accelerator.prepare(
-        model, optimizer, train_loader, val_loader
+    model, optimizer, train_loader = accelerator.prepare(
+        model, optimizer, train_loader
     )
 
     total_flops = 0
