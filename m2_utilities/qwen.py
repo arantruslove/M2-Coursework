@@ -2,8 +2,10 @@ import torch
 from transformers import AutoModelForCausalLM
 from accelerate import Accelerator
 from tqdm import tqdm
+
 from m2_utilities.preprocessor import get_tokenizer
 from m2_utilities.flops import compute_flops
+from m2_utilities.metrics import forecast_metrics
 
 
 def load_qwen():
@@ -25,7 +27,7 @@ def load_qwen():
     return model, tokenizer
 
 
-def eval(model, test_loader, calc_flops=False):
+def eval(model, test_loader):
     """Evaluate model loss on test dataset."""
 
     model.eval()
@@ -41,21 +43,22 @@ def eval(model, test_loader, calc_flops=False):
     # Averaging over number of batches
     test_loss = test_loss / len(test_loader)
 
-    if calc_flops:
-        return test_loss, flops
-    return test_loss
+    return test_loss, flops
 
 
 def train(
     model,
     train_loader,
-    val_loader,
+    val_trajectories,
+    decimals,
+    n_forecast=20,
     eval_interval=100,
     max_steps=10000,
     learning_rate=1e-5,
     wandb=None,
 ):
 
+    # Configuring optimizer
     optimizer = torch.optim.Adam(
         (p for p in model.parameters() if p.requires_grad), lr=learning_rate
     )
@@ -90,17 +93,21 @@ def train(
             if wandb:
                 wandb.log({"Loss": loss.item(), "Flops": total_flops})
 
-            # Evaluating on validation dataset
+            # Computing performance metrics
             if steps % eval_interval == 0:
-                val_loss, val_flops = eval(model, val_loader, calc_flops=True)
-                total_flops += val_flops
-
+                pred_mae, prey_mae, pred_mrae, prey_mrae = forecast_metrics(
+                    model, val_trajectories, n_forecast, decimals
+                )
                 # Logging to wandb
                 if wandb:
-                    wandb.log({"Validation Loss": val_loss, "Flops": total_flops})
-
-                # Return to train mode
-                model.train()
+                    wandb.log(
+                        {
+                            "Pred MAE": pred_mae,
+                            "Prey MAE": prey_mae,
+                            "Pred MRAE": pred_mrae,
+                            "Prey MRAE": prey_mrae,
+                        }
+                    )
 
             if steps > max_steps:
                 break
