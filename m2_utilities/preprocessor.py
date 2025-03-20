@@ -114,7 +114,7 @@ class Preprocessor:
         self.decimals = decimals
         self.alpha = None
 
-    def encode(self, trajectories, max_length=512, stride=256):
+    def encode(self, trajectories, chunk=False, max_length=512, stride=256):
         """
         Encode from numerical trajectories to token ids. Set scaling coefficient alpha.
         Apply Chunking.
@@ -125,8 +125,15 @@ class Preprocessor:
         # Stringify
         texts = batch_stringify(scaled_trajectories, self.decimals)
 
-        # Tokenize and chunk
-        batch_token_ids = process_sequences(texts, max_length, stride)
+        # Include chunking
+        if chunk:
+            chunked_token_ids = process_sequences(texts, max_length, stride)
+            return chunked_token_ids
+
+        # No chunking
+        batch_token_ids = tokenizer(
+            texts, return_tensors="pt", add_special_tokens=False
+        )["input_ids"]
         return batch_token_ids
 
     def decode(self, batch_token_ids):
@@ -151,19 +158,19 @@ class Preprocessor:
 
 
 # Functions to sanitzise and validate outputs of the Qwen2.5 model
-def trim_sequence(tokens):
+def trim_sequence(token_ids):
     """Truncate the sequence so that there are no incomplete timesteps."""
     # Locate the first semicolon to determine the width of a single timestep
     SEMICOLON_TOKEN = 26
-    indices = torch.where(tokens == SEMICOLON_TOKEN)[0]
+    indices = torch.where(token_ids == SEMICOLON_TOKEN)[0]
 
     first = torch.min(indices).item()
     last = torch.max(indices).item()
 
-    if (len(tokens) + 1) % (first + 1) == 0:
+    if (len(token_ids) + 1) % (first + 1) == 0:
         # If the final token is not a semicolon but is a complete timestep
-        return tokens
-    return tokens[:last]
+        return token_ids
+    return token_ids[:last]
 
 
 def validate_sequence(tokens):
