@@ -1,6 +1,5 @@
 import torch
 
-from m2_utilities.flops import compute_flops
 from m2_utilities.preprocessor import Preprocessor
 
 
@@ -34,22 +33,37 @@ def compute_mae(true_trajectories, forecast_trajectories):
     return torch.mean(torch.abs(true_trajectories - forecast_trajectories)).item()
 
 
-def eval(model, test_loader, calc_flops=False):
-    """Evaluate model loss on test dataset."""
+def compute_mrae(true_trajectories, forecast_trajectories, epsilon=1e-8):
+    """
+    Compute the mean relative absolute error between true and forecast trajectories.
+    """
+    return torch.mean(
+        torch.abs(true_trajectories - forecast_trajectories)
+        / torch.abs(true_trajectories + epsilon)
+    ).item()
 
+
+def forecast_metrics(model, test_trajectories, n_forecast, decimals):
+    """
+    Forecast the next 'n_forecast' points and compute MAE and MRAE for both predator
+    and prey populations.
+    """
+    # Forecasting next steps
     model.eval()
-    flops = 0
-    test_loss = 0.0
-    with torch.no_grad():
-        for (batch,) in test_loader:
-            outputs = model(batch, labels=batch)
-            loss = outputs.loss
-            test_loss += loss.item()
+    forecast = forecast_points(model, test_trajectories, n_forecast, decimals)
 
-            flops += compute_flops(batch.shape[1], batch.shape[0], backpropagate=False)
-    # Averaging over number of batches
-    test_loss = test_loss / len(test_loader)
+    # Splitting into predator and prey
+    pred_true = test_trajectories[:, -n_forecast:, 0]
+    prey_true = test_trajectories[:, -n_forecast:, 1]
 
-    if calc_flops:
-        return test_loss, flops
-    return test_loss
+    pred_forecast = forecast[:, :, 0]
+    prey_forecast = forecast[:, :, 1]
+
+    # Computing metrics
+    pred_mae = compute_mae(pred_true, pred_forecast)
+    prey_mae = compute_mae(prey_true, prey_forecast)
+    pred_mrae = compute_mrae(pred_true, pred_forecast)
+    prey_mrae = compute_mrae(prey_true, prey_forecast)
+
+    model.train()
+    return pred_mae, prey_mae, pred_mrae, prey_mrae
