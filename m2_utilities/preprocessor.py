@@ -158,19 +158,26 @@ class Preprocessor:
 
 
 # Functions to sanitzise and validate outputs of the Qwen2.5 model
-def trim_sequence(token_ids):
+def truncate_sequence(token_ids, n_points):
     """Truncate the sequence so that there are no incomplete timesteps."""
     # Locate the first semicolon to determine the width of a single timestep
     SEMICOLON_TOKEN = 26
-    indices = torch.where(token_ids == SEMICOLON_TOKEN)[0]
+    count = 0
+    for i in range(len(token_ids)):
+        id = token_ids[i]
+        if id == SEMICOLON_TOKEN:
+            count += 1
+            if count == n_points:
+                return token_ids[:i]
 
-    first = torch.min(indices).item()
-    last = torch.max(indices).item()
 
-    if (len(token_ids) + 1) % (first + 1) == 0:
-        # If the final token is not a semicolon but is a complete timestep
-        return token_ids
-    return token_ids[:last]
+def batch_truncate_sequence(batch_token_ids, n_points):
+    """Apply 'truncate_sequence' across a batch of token ids."""
+    trimmed_sequence = []
+    for token_ids in batch_token_ids:
+        trimmed = truncate_sequence(token_ids, n_points)
+        trimmed_sequence.append(trimmed)
+    return torch.stack(trimmed_sequence)
 
 
 def validate_sequence(tokens):
