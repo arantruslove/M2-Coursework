@@ -23,6 +23,7 @@ def gen_points(model, trajectories, n_points, decimals):
     input_ids = preprocessor.encode(trajectories)
 
     # Forecast future points
+    model = accelerator.prepare(model)
     input_ids = input_ids.to(accelerator.device)
 
     output_ids = model.generate(
@@ -40,12 +41,12 @@ def gen_points(model, trajectories, n_points, decimals):
     return forecast_trajectories
 
 
-def predict_next_points(model, trajectories, n_predictions):
+def predict_next_points(model, trajectories, n_predictions, decimals):
     """Predict the next point for the last 'n_predictions' points in trajectories."""
 
     predictions = [[] for _ in range(len(trajectories))]
     for i in tqdm(range(n_predictions)):
-        forecast = predict_next_points(model, trajectories[:, :-n_predictions+i], 1, decimals=3)
+        forecast = gen_points(model, trajectories[:, :-n_predictions+i], 1, decimals)
         for j in range(len(forecast)):
             predictions[j].append(forecast[j][0].tolist())
 
