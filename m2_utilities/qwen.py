@@ -5,7 +5,6 @@ from tqdm import tqdm
 
 from m2_utilities.preprocessor import get_tokenizer
 from m2_utilities.flops import compute_flops
-from m2_utilities.metrics import forecast_metrics
 
 
 def load_qwen():
@@ -49,9 +48,7 @@ def eval(model, test_loader):
 def train(
     model,
     train_loader,
-    val_trajectories,
-    decimals,
-    n_forecast=20,
+    val_loader,
     eval_interval=100,
     max_steps=10000,
     learning_rate=1e-5,
@@ -63,8 +60,8 @@ def train(
     )
     # Prepare components with Accelerator
     accelerator = Accelerator()
-    model, optimizer, train_loader = accelerator.prepare(
-        model, optimizer, train_loader
+    model, optimizer, train_loader, val_loader = accelerator.prepare(
+        model, optimizer, train_loader, val_loader
     )
 
     total_flops = 0
@@ -94,17 +91,16 @@ def train(
 
             # Computing performance metrics
             if steps % eval_interval == 0:
-                pred_mae, prey_mae, pred_mrae, prey_mrae = forecast_metrics(
-                    model, val_trajectories, n_forecast, decimals
-                )
+                val_loss, eval_flops = eval(model, val_loader)
+                total_flops += eval_flops
+                model.train()
+
                 # Logging to wandb
                 if wandb:
                     wandb.log(
                         {
-                            "Pred MAE": pred_mae,
-                            "Prey MAE": prey_mae,
-                            "Pred MRAE": pred_mrae,
-                            "Prey MRAE": prey_mrae,
+                            "Validation Loss": val_loss,
+                            "Flops": total_flops,
                         }
                     )
 
