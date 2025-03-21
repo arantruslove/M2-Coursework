@@ -4,6 +4,7 @@ from accelerate import Accelerator
 from m2_utilities.preprocessor import Preprocessor, batch_truncate_sequence
 from m2_utilities.stopping import stopping_criteria
 
+accelerator = Accelerator()
 
 def calc_n_tokens(decimals):
     """
@@ -21,7 +22,6 @@ def forecast_points(model, trajectories, n_forecast, decimals):
     input_ids = preprocessor.encode(trajectories)
 
     # Forecast future points
-    accelerator = Accelerator()
     input_ids = input_ids.to(accelerator.device)
 
     output_ids = model.generate(
