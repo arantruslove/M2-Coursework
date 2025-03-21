@@ -31,8 +31,9 @@ def forecast_points(model, trajectories, n_forecast, decimals):
         do_sample=False,
     )
 
-    # Trim
-    output_ids = batch_truncate_sequence(output_ids, len(trajectories) + n_forecast)
+    # Isolate new tokens
+    output_ids = output_ids[:, input_ids.shape[1] + 1 :]
+    output_ids = batch_truncate_sequence(output_ids, n_forecast)
 
     forecast_trajectories = preprocessor.decode(output_ids)[:, -n_forecast:, :]
     return forecast_trajectories
