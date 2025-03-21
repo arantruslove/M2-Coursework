@@ -23,7 +23,7 @@ def scale(trajectories):
         alpha = max_val / (10.0 - EPSILON)
     else:
         alpha = 1.0
-    return trajectories / alpha, alpha
+    return trajectories / alpha
 
 
 def string_dp(val, decimals):
@@ -112,18 +112,14 @@ def process_sequences(texts, max_length=512, stride=256):
 class Preprocessor:
     def __init__(self, decimals):
         self.decimals = decimals
-        self.alpha = None
 
     def encode(self, trajectories, chunk=False, max_length=512, stride=256):
         """
         Encode from numerical trajectories to token ids. Set scaling coefficient alpha.
         Apply Chunking.
         """
-        # Scale
-        scaled_trajectories, self.alpha = scale(trajectories)
-
         # Stringify
-        texts = batch_stringify(scaled_trajectories, self.decimals)
+        texts = batch_stringify(trajectories, self.decimals)
 
         # Include chunking
         if chunk:
@@ -138,23 +134,14 @@ class Preprocessor:
 
     def decode(self, batch_token_ids):
         """Restore the numerical trajectories from a batch of token ids."""
-        if self.alpha is None:
-            raise ValueError(
-                "Scaling factor 'alpha' is not set. Ensure 'encode' is called before "
-                "'decode'."
-            )
-
         # Detokenize to text
         texts = tokenizer.batch_decode(
             batch_token_ids, return_tensors="pt", add_special_tokens=False
         )
 
         # Destringify
-        unscaled_trajectories = batch_destringify(texts)
-
-        # Rescale
-        rescaled_trajectories = unscaled_trajectories * self.alpha
-        return rescaled_trajectories
+        trajectories = batch_destringify(texts)
+        return trajectories
 
 
 # Functions to sanitzise and validate outputs of the Qwen2.5 model
