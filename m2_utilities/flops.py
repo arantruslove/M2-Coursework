@@ -155,6 +155,7 @@ def compute_flops(
     vocab_size=151936,
     d_model=896,
     hidden_size=4864,
+    inference=False,
     backpropagate=False,
 ):
     """Compute FLOPS for a forward pass of the network."""
@@ -167,9 +168,14 @@ def compute_flops(
         total_flops += block(n_tokens, n_heads, d_model, hidden_size)
 
     # Linear transformation and softmax
-    total_flops += rms_norm(n_tokens, d_model)
-    total_flops += final_linear(n_tokens, d_model, vocab_size)
-    total_flops += softmax(n_tokens, vocab_size)
+    post_blocks_flops = rms_norm(n_tokens, d_model)
+    post_blocks_flops += final_linear(n_tokens, d_model, vocab_size)
+    post_blocks_flops += softmax(n_tokens, vocab_size)
+
+    # Only applied to a single token during inference
+    if inference:
+        post_blocks_flops /= n_tokens
+    total_flops += post_blocks_flops
 
     # Multiply by batch size
     total_flops *= batch_size
@@ -179,4 +185,14 @@ def compute_flops(
         return 3 * total_flops
 
     # Only forward
+    return total_flops
+
+def compute_flops_gen(n_context, n_generate, **kwargs):
+    """
+    Compute the number of flops when generating 'n_generate' tokens with an input size
+    of 'n_input'.
+    """
+    total_flops = 0
+    for i in range(n_generate):
+        total_flops += compute_flops(n_context + i, inference=True, **kwargs)
     return total_flops
