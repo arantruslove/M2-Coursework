@@ -23,7 +23,7 @@ def scale(trajectories):
         alpha = max_val / (10.0 - EPSILON)
     else:
         alpha = 1.0
-    return trajectories / alpha
+    return trajectories / alpha, alpha
 
 
 def string_dp(val, decimals):
@@ -124,14 +124,18 @@ def process_sequences(texts, max_length=512, stride=256):
 class Preprocessor:
     def __init__(self, decimals):
         self.decimals = decimals
+        self.alpha = None
 
     def encode(self, trajectories, chunk=False, max_length=512, stride=256):
         """
         Encode from numerical trajectories to token ids. Set scaling coefficient alpha.
         Apply Chunking.
         """
+        # Scale
+        scaled_trajectories, self.alpha = scale(trajectories)
+
         # Stringify
-        texts = batch_stringify(trajectories, self.decimals)
+        texts = batch_stringify(scaled_trajectories, self.decimals)
 
         # Include chunking
         if chunk:
@@ -146,6 +150,7 @@ class Preprocessor:
 
     def decode(self, batch_token_ids):
         """Restore the numerical trajectories from a batch of token ids."""
+
         # Detokenize to text
         texts = tokenizer.batch_decode(
             batch_token_ids, return_tensors="pt", add_special_tokens=False
@@ -153,6 +158,9 @@ class Preprocessor:
 
         # Destringify
         trajectories = batch_destringify(texts)
+
+        # Unscale
+        trajectories = trajectories * self.alpha
         return trajectories
 
 
