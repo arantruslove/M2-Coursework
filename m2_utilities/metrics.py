@@ -52,6 +52,13 @@ def predict_next_points(model, trajectories, n_predictions, decimals):
 
     return torch.tensor(predictions)
     
+def remove_nans(true_trajectories, forecast_trajectories):
+    """
+    Remove nan entries present in 'forecast_trajectories' from both 'true_trajectories'
+    and 'forecast_trajectories'. 
+    """
+    mask = ~torch.isnan(forecast_trajectories[:, 0, 0])
+    return true_trajectories[mask], forecast_trajectories[mask]
 
 
 def compute_mae(true_trajectories, forecast_trajectories):
@@ -69,27 +76,31 @@ def compute_mrae(true_trajectories, forecast_trajectories, epsilon=1e-8):
     ).item()
 
 
-def forecast_metrics(model, test_trajectories, n_forecast, decimals):
+def compute_metrics(true_trajectories, forecast_trajectories):
     """
-    Forecast the next 'n_forecast' points and compute MAE and MRAE for both predator
-    and prey populations.
+    Compute MAE and MRAE at each point for both predator and prey populations.
     """
-    # Forecasting next steps
-    model.eval()
-    forecast = gen_points(model, test_trajectories, n_forecast, decimals)
+    # Removing nan entries
+    true_trajectories, forecast_trajectories = remove_nans(true_trajectories, 
+                                                           forecast_trajectories)
 
     # Splitting into predator and prey
-    pred_true = test_trajectories[:, -n_forecast:, 0]
-    prey_true = test_trajectories[:, -n_forecast:, 1]
-
-    pred_forecast = forecast[:, :, 0]
-    prey_forecast = forecast[:, :, 1]
+    pred_true = true_trajectories[:, :, 0]
+    prey_true = true_trajectories[:, :, 1]
+    pred_forecast = forecast_trajectories[:, :, 0]
+    prey_forecast = forecast_trajectories[:, :, 1]
 
     # Computing metrics
-    pred_mae = compute_mae(pred_true, pred_forecast)
-    prey_mae = compute_mae(prey_true, prey_forecast)
-    pred_mrae = compute_mrae(pred_true, pred_forecast)
-    prey_mrae = compute_mrae(prey_true, prey_forecast)
+    pred_maes, prey_maes, pred_mraes, prey_mraes = [], [], [], []
+    for i in range(pred_true.shape[1]):
+        pred_mae = compute_mae(pred_true[:, i], pred_forecast[:, i])
+        prey_mae = compute_mae(prey_true[:, i], prey_forecast[:, i])
+        pred_mrae = compute_mrae(pred_true[:, i], pred_forecast[:, i])
+        prey_mrae = compute_mrae(prey_true[:, i], prey_forecast[:, i])
 
-    model.train()
-    return pred_mae, prey_mae, pred_mrae, prey_mrae
+        pred_maes.append(pred_mae)
+        prey_maes.append(prey_mae)
+        pred_mraes.append(pred_mrae)
+        prey_mraes.append(prey_mrae)
+
+    return torch.tensor(pred_maes), torch.tensor(prey_maes), torch.tensor(pred_mraes), torch.tensor(prey_mraes)
