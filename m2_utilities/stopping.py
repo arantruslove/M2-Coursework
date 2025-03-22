@@ -1,11 +1,14 @@
 import torch
 from transformers import StoppingCriteria, StoppingCriteriaList
 
+from m2_utilities.preprocessor import valid_tokens
+
 
 class MaxSemicolonCriteria(StoppingCriteria):
     def __init__(self, input_ids, n_points):
         self.max_semicolons = n_points + 1
         self.n_semicolons = torch.zeros(len(input_ids), dtype=torch.int)
+        self.is_invalid = torch.zeros(len(input_ids), dtype=torch.bool)
 
     def __call__(self, input_ids, scores, **kwargs):
         SEMICOLON_ID = 26
@@ -15,7 +18,10 @@ class MaxSemicolonCriteria(StoppingCriteria):
             if last_id == SEMICOLON_ID:
                 self.n_semicolons[i] += 1
 
-        return torch.all(self.n_semicolons >= self.max_semicolons)
+            if last_id not in valid_tokens:
+                self.is_invalid[i] = True
+
+        return torch.all((self.n_semicolons >= self.max_semicolons) | self.is_invalid) 
 
 
 def stopping_criteria(input_ids, n_points):
