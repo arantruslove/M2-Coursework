@@ -1,6 +1,7 @@
 import torch
 from transformers import AutoTokenizer
 
+valid_tokens = {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 11, 13, 26}
 
 def get_tokenizer():
     """Get the Qwen2.5 tokenizer."""
@@ -10,7 +11,6 @@ def get_tokenizer():
 
 
 tokenizer = get_tokenizer()
-
 
 def scale(trajectories):
     """
@@ -68,9 +68,21 @@ def batch_destringify(texts):
     """Destringify a batch of texts to return an array of numberical trajectories"""
     trajectories = []
     for text in texts:
-        trajectory = destringify(text)
-        trajectories.append(trajectory)
+        try:
+            trajectory = destringify(text)
+            trajectories.append(trajectory)
+        except:
+            trajectories.append(None)
 
+    # Replacing nones with tensors of nan values of the same shape
+    for trajectory in trajectories:
+        if trajectory is not None:
+            shape = trajectory.shape
+            break
+
+    for i in range(len(trajectories)):
+        if trajectories[i] is None:
+            trajectories[i] = torch.full(shape, float("nan"))
     return torch.stack(trajectories)
 
 
@@ -156,6 +168,7 @@ def truncate_sequence(token_ids, n_points):
             count += 1
             if count == n_points:
                 return token_ids[:i]
+    return token_ids
 
 
 def batch_truncate_sequence(batch_token_ids, n_points):
@@ -164,17 +177,16 @@ def batch_truncate_sequence(batch_token_ids, n_points):
     for token_ids in batch_token_ids:
         trimmed = truncate_sequence(token_ids, n_points)
         trimmed_sequence.append(trimmed)
-    return torch.stack(trimmed_sequence)
+    return trimmed_sequence
 
 
-def validate_sequence(tokens):
+def is_valid(tokens):
     """
     Ensure that the sequence only contains valid tokens. Tokens 15-24 correspond to
     integers 0-9. 11 corresponds to ',', 13 corresponds to '.' and 26 corresponds to ';'.
     """
-    VALID_TOKENS = {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 11, 13, 26}
 
     tokens_list = tokens.tolist()
     for token in tokens_list:
-        if token not in VALID_TOKENS:
+        if token not in valid_tokens:
             raise ValueError(f"Sequence contains '{token}' which is not a valid token.")
