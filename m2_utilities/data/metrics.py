@@ -1,6 +1,10 @@
 import torch
 
-    
+
+def count_nans(forecast_trajectories):
+    """Count the number of nan trajectories in a batch of trajectories."""
+    return torch.isnan(forecast_trajectories[:, 0, 0]).sum()
+
 def remove_nans(true_trajectories, forecast_trajectories):
     """
     Remove nan entries present in 'forecast_trajectories' from both 'true_trajectories'

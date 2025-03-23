@@ -49,7 +49,7 @@ def main():
     try:
         train_model(model, train_loader, val_loader, learning_rate=params["lr"], eval_interval=params["eval_interval"], max_steps=params["max_steps"], wandb=wandb)
     except KeyboardInterrupt:
-        print("Training interrupted...")
+        print("Saving model...")
     finally:
         torch.save(model.state_dict(), f"models/state_dict_{args.config_no}.pt")
 
