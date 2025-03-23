@@ -3,7 +3,7 @@ from transformers import AutoModelForCausalLM
 from accelerate import Accelerator
 from tqdm import tqdm
 
-from m2_utilities.preprocessor import get_tokenizer
+from m2_utilities.data.preprocessor import get_tokenizer
 from m2_utilities.flops import compute_flops
 
 

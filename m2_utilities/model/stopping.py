@@ -1,7 +1,7 @@
 import torch
 from transformers import StoppingCriteria, StoppingCriteriaList
 
-from m2_utilities.preprocessor import valid_tokens
+from m2_utilities.data.preprocessor import valid_tokens
 
 
 class MaxSemicolonCriteria(StoppingCriteria):
