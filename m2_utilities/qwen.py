@@ -66,13 +66,19 @@ def train(
 
     total_flops = 0
     steps = 0
-    while steps < max_steps:
 
+    # Train
+    model.train()
+    progress_bar = tqdm(train_loader, desc=f"Steps {steps}")
+
+    while True:
         # Train
         model.train()
         progress_bar = tqdm(train_loader, desc=f"Steps {steps}")
+        
         for (batch,) in progress_bar:
 
+            # Descent step
             optimizer.zero_grad()
             outputs = model(batch, labels=batch)
             loss = outputs.loss
@@ -104,5 +110,6 @@ def train(
                         }
                     )
 
+            # End training when max_steps have been reached
             if steps > max_steps:
-                break
+                return None
