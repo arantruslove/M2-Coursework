@@ -1,3 +1,4 @@
+import os
 import argparse
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -19,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_no", type=int, required=True)
     parser.add_argument("--restrict_tokens", type=bool, default=False)
+    parser.add_argument("--save", type=bool, default=False)
     args = parser.parse_args()
     params = hyperparam_options[args.config_no]
 
@@ -96,6 +98,14 @@ def main():
     print("")
     print(f"Total Flops: {flops_val + flops_40 + flops_80:.4e}")
 
+    # Save metrics
+    if args.save:
+        os.makedirs(f"output_data/config_{args.config_no}", exist_ok=True)
+        torch.save(pred_maes_40, f"output_data/config_{args.config_no}/pred_maes_40.pt")
+        torch.save(prey_maes_40, f"output_data/config_{args.config_no}/prey_maes_40.pt")
+        torch.save(pred_maes_80, f"output_data/config_{args.config_no}/pred_maes_80.pt")
+        torch.save(prey_maes_80, f"output_data/config_{args.config_no}/prey_maes_80.pt")
+        torch.save(predict_80, f"output_data/config_{args.config_no}/predict_80.pt")
 
 if __name__ == "__main__":
     main()
