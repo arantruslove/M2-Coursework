@@ -18,6 +18,7 @@ def main():
     # Obtaining hyperparameters based off of 'config_no'
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_no', type=int, required=True)
+    parser.add_argument('--restrict_tokens', type=bool, default=False)
     args = parser.parse_args()
     params = hyperparam_options[args.config_no]
 
@@ -46,13 +47,13 @@ def main():
 
     # Generate future prediction points
     # Context length of 40
-    predict_40 = gen_points(model, val_trajectories[:, :40], n_points=20, decimals=params["decimals"])
+    predict_40 = gen_points(model, val_trajectories[:, :40], n_points=20, decimals=params["decimals"], restrict_tokens=args.restrict_tokens)
     nans_40 = count_nans(predict_40)
     pred_maes_40, prey_maes_40, pred_mraes_40, prey_mraes_40 = compute_metrics(val_trajectories[:, 40:60], predict_40)
     flops_40 = compute_flops_gen(40, 20, batch_size=150)
 
     # Context length of 80
-    predict_80 = gen_points(model, val_trajectories[:, :80], n_points=20, decimals=params["decimals"])
+    predict_80 = gen_points(model, val_trajectories[:, :80], n_points=20, decimals=params["decimals"], restrict_tokens=args.restrict_tokens)
     nans_80 = count_nans(predict_80)
     pred_maes_80, prey_maes_80, pred_mraes_80, prey_mraes_80 = compute_metrics(val_trajectories[:, 80:], predict_80)
     flops_80 = compute_flops_gen(80, 20, batch_size=150)

@@ -1,5 +1,5 @@
 import torch
-from transformers import StoppingCriteria, StoppingCriteriaList
+from transformers import StoppingCriteria, StoppingCriteriaList, LogitsProcessor, LogitsProcessorList
 
 from m2_utilities.data.preprocessor import valid_tokens
 
@@ -21,8 +21,22 @@ class MaxSemicolonCriteria(StoppingCriteria):
             if last_id not in valid_tokens:
                 self.is_invalid[i] = True
 
-        return torch.all((self.n_semicolons >= self.max_semicolons) | self.is_invalid) 
+        return torch.all((self.n_semicolons >= self.max_semicolons) | self.is_invalid)
+
+class OnlyAllowedTokens(LogitsProcessor):
+    def __init__(self):
+        self.allowed_token_ids = list(valid_tokens)
+
+    def __call__(self, input_ids, scores):
+        # Set logits of all tokens not in the allowed list to -inf
+        mask = torch.ones_like(scores, dtype=torch.bool)
+        mask[:, self.allowed_token_ids] = False
+        scores = scores.masked_fill(mask, float('-inf'))
+        return scores
 
 
 def stopping_criteria(input_ids, n_points):
     return StoppingCriteriaList([MaxSemicolonCriteria(input_ids, n_points)])
+
+def logits_processor():
+    return LogitsProcessorList([OnlyAllowedTokens()])
