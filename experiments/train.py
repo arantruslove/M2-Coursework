@@ -1,3 +1,4 @@
+import os
 import torch
 import argparse
 from torch.utils.data import DataLoader, TensorDataset
@@ -62,8 +63,10 @@ def main():
             wandb=wandb,
         )
     except KeyboardInterrupt:
-        print("Saving model...")
+        pass
     finally:
+        print("Saving model...")
+        os.makedirs("models", exist_ok=True)
         torch.save(model.state_dict(), f"models/state_dict_{args.config_no}.pt")
 
 
