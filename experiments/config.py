@@ -10,7 +10,7 @@ hyperparam_options = {
     8: {'lr': 1e-4, 'lora_rank': 2, 'chunk_size': 512, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
     9: {'lr': 1e-4, 'lora_rank': 4, 'chunk_size': 512, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
     10: {'lr': 1e-4, 'lora_rank': 8, 'chunk_size': 512, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
-    11: {'lr': 5e-5, 'lora_rank': 8, 'chunk_size': 128, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
-    12: {'lr': 5e-5, 'lora_rank': 8, 'chunk_size': 768, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
-    13: {'lr': 5e-5, 'lora_rank': 8, 'chunk_size': 512, 'decimals': 2, 'batch_size': 4, 'train_size': 850, 'eval_interval': 200, 'max_steps': 30000},
+    11: {'lr': 1e-4, 'lora_rank': 8, 'chunk_size': 128, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
+    12: {'lr': 1e-4, 'lora_rank': 8, 'chunk_size': 768, 'decimals': 2, 'batch_size': 4, 'train_size': 170, 'eval_interval': float("inf"), 'max_steps': 880},
+    13: {'lr': 1e-4, 'lora_rank': 8, 'chunk_size': 512, 'decimals': 2, 'batch_size': 4, 'train_size': 850, 'eval_interval': 200, 'max_steps': 30000},
 }
