@@ -3,6 +3,7 @@ from transformers import AutoTokenizer
 
 valid_tokens = {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 11, 13, 26}
 
+
 def get_tokenizer():
     """Get the Qwen2.5 tokenizer."""
     MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -11,6 +12,7 @@ def get_tokenizer():
 
 
 tokenizer = get_tokenizer()
+
 
 def scale(trajectories):
     """

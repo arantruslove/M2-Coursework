@@ -75,7 +75,7 @@ def train(
         # Train
         model.train()
         progress_bar = tqdm(train_loader, desc=f"Steps {steps}")
-        
+
         for (batch,) in progress_bar:
 
             # Descent step

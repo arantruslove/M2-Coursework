@@ -44,7 +44,7 @@ def predict_next_points(model, trajectories, n_predictions, decimals):
 
     predictions = [[] for _ in range(len(trajectories))]
     for i in tqdm(range(n_predictions)):
-        forecast = gen_points(model, trajectories[:, :-n_predictions+i], 1, decimals)
+        forecast = gen_points(model, trajectories[:, : -n_predictions + i], 1, decimals)
         for j in range(len(forecast)):
             predictions[j].append(forecast[j][0].tolist())
 

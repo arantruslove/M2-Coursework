@@ -187,6 +187,7 @@ def compute_flops(
     # Only forward
     return total_flops
 
+
 def compute_flops_gen(n_context, n_generate, **kwargs):
     """
     Compute the number of flops when generating 'n_generate' tokens with an input size

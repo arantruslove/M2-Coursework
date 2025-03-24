@@ -5,10 +5,11 @@ def count_nans(forecast_trajectories):
     """Count the number of nan trajectories in a batch of trajectories."""
     return torch.isnan(forecast_trajectories[:, 0, 0]).sum()
 
+
 def remove_nans(true_trajectories, forecast_trajectories):
     """
     Remove nan entries present in 'forecast_trajectories' from both 'true_trajectories'
-    and 'forecast_trajectories'. 
+    and 'forecast_trajectories'.
     """
     mask = ~torch.isnan(forecast_trajectories[:, 0, 0])
     return true_trajectories[mask], forecast_trajectories[mask]
@@ -34,8 +35,9 @@ def compute_metrics(true_trajectories, forecast_trajectories):
     Compute MAE and MRAE at each point for both predator and prey populations.
     """
     # Removing nan entries
-    true_trajectories, forecast_trajectories = remove_nans(true_trajectories, 
-                                                           forecast_trajectories)
+    true_trajectories, forecast_trajectories = remove_nans(
+        true_trajectories, forecast_trajectories
+    )
 
     # Splitting into predator and prey
     pred_true = true_trajectories[:, :, 0]
@@ -56,4 +58,9 @@ def compute_metrics(true_trajectories, forecast_trajectories):
         pred_mraes.append(pred_mrae)
         prey_mraes.append(prey_mrae)
 
-    return torch.tensor(pred_maes), torch.tensor(prey_maes), torch.tensor(pred_mraes), torch.tensor(prey_mraes)
+    return (
+        torch.tensor(pred_maes),
+        torch.tensor(prey_maes),
+        torch.tensor(pred_mraes),
+        torch.tensor(prey_mraes),
+    )
