@@ -2,7 +2,8 @@ import torch
 from accelerate import Accelerator
 from tqdm import tqdm
 
-from m2_utilities.data.preprocessor import Preprocessor, batch_truncate_sequence
+from m2_utilities.data.preprocessor import Preprocessor
+from m2_utilities.data.postprocessor import batch_truncate_sequence
 from m2_utilities.model.gen_constraints import stopping_criteria, logits_processor
 
 accelerator = Accelerator()

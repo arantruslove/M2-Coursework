@@ -164,39 +164,3 @@ class Preprocessor:
         # Unscale
         trajectories = trajectories * self.alpha
         return trajectories
-
-
-# Functions to sanitzise and validate outputs of the Qwen2.5 model
-def truncate_sequence(token_ids, n_points):
-    """Truncate the sequence so that there are no incomplete timesteps."""
-    # Locate the first semicolon to determine the width of a single timestep
-    SEMICOLON_TOKEN = 26
-    count = 0
-    for i in range(len(token_ids)):
-        id = token_ids[i]
-        if id == SEMICOLON_TOKEN:
-            count += 1
-            if count == n_points:
-                return token_ids[:i]
-    return token_ids
-
-
-def batch_truncate_sequence(batch_token_ids, n_points):
-    """Apply 'truncate_sequence' across a batch of token ids."""
-    trimmed_sequence = []
-    for token_ids in batch_token_ids:
-        trimmed = truncate_sequence(token_ids, n_points)
-        trimmed_sequence.append(trimmed)
-    return trimmed_sequence
-
-
-def is_valid(tokens):
-    """
-    Ensure that the sequence only contains valid tokens. Tokens 15-24 correspond to
-    integers 0-9. 11 corresponds to ',', 13 corresponds to '.' and 26 corresponds to ';'.
-    """
-
-    tokens_list = tokens.tolist()
-    for token in tokens_list:
-        if token not in valid_tokens:
-            raise ValueError(f"Sequence contains '{token}' which is not a valid token.")
