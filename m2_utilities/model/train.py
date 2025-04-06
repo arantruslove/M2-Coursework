@@ -6,7 +6,17 @@ from m2_utilities.flops import compute_flops
 
 
 def eval(model, test_loader):
-    """Evaluate model loss on test dataset."""
+    """Evaluate the model on the test dataset and compute FLOPS.
+
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        test_loader (DataLoader): DataLoader for the test dataset.
+
+    Returns:
+        tuple: A tuple containing:
+            - float: Average test loss.
+            - int: Total FLOPS used during evaluation.
+    """
 
     model.eval()
     flops = 0
@@ -33,6 +43,21 @@ def train_model(
     learning_rate=1e-5,
     wandb=None,
 ):
+    """Train a model with validation and FLOPS tracking.
+
+    Args:
+        model (torch.nn.Module): The model to train.
+        train_loader (DataLoader): DataLoader for the training dataset.
+        val_loader (DataLoader): DataLoader for the validation dataset.
+        eval_interval (int, optional): How often (in steps) to evaluate the model. Defaults to 100.
+        max_steps (int, optional): Maximum number of training steps. Defaults to 10000.
+        learning_rate (float, optional): Learning rate for the optimizer. Defaults to 1e-5.
+        wandb (module, optional): Weights & Biases module for logging metrics. Defaults to None.
+
+    Returns:
+        None
+    """
+
     # Configuring optimizer
     optimizer = torch.optim.Adam(
         (p for p in model.parameters() if p.requires_grad), lr=learning_rate
