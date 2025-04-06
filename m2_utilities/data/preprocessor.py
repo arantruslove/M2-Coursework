@@ -1,11 +1,16 @@
 import torch
 from transformers import AutoTokenizer
 
+# Valid token ids corresponding to integers 0 through 9, dots, commas, and semicolons
 valid_tokens = {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 11, 13, 26}
 
 
 def get_tokenizer():
-    """Get the Qwen2.5 tokenizer."""
+    """Load the Qwen2.5 tokenizer.
+
+    Returns:
+        AutoTokenizer: The tokenizer for Qwen2.5-0.5B-Instruct.
+    """
     MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     return tokenizer
@@ -15,13 +20,17 @@ tokenizer = get_tokenizer()
 
 
 def scale(trajectories):
-    """
-    Scale the trajectories such that the maximum value is less than 10 by dividing the
-    trajectories by the maximum value.
+    """Scale trajectory values to ensure the maximum value is less than 10.
+
+    Args:
+        trajectories (torch.Tensor): Input tensor of shape (batch_size, seq_len, 2).
+
+    Returns:
+        tuple: Scaled trajectories and the scaling factor (alpha).
     """
     max_val = torch.max(trajectories).item()
     if max_val >= 10.0:
-        EPSILON = 0.1  # To ensure that the scaled max is striclty less than 10
+        EPSILON = 0.1  # To ensure that the scaled max is strictly less than 10
         alpha = max_val / (10.0 - EPSILON)
     else:
         alpha = 1.0
@@ -29,14 +38,27 @@ def scale(trajectories):
 
 
 def string_dp(val, decimals):
-    """Convert a float to a string with a fixed number of decimal places."""
+    """Convert a float to a string with fixed decimal precision.
+
+    Args:
+        val (float): Value to format.
+        decimals (int): Number of decimal places.
+
+    Returns:
+        str: Formatted string.
+    """
     return f"{val:.{decimals}f}"
 
 
 def stringify(trajectory, decimals):
-    """
-    Stringify the trajectory. Uses commas to separate between predator and prey
-    values. Uses semicolons to separate between time points.
+    """Convert a 2D trajectory tensor to a formatted string.
+
+    Args:
+        trajectory (torch.Tensor): Tensor of shape (seq_len, 2).
+        decimals (int): Decimal precision for formatting.
+
+    Returns:
+        str: String representation of the trajectory.
     """
     text = ""
     for pred, prey in trajectory:
@@ -47,7 +69,15 @@ def stringify(trajectory, decimals):
 
 
 def batch_stringify(trajectories, decimals):
-    """Stringify a batch of trajectories to return a list of strings."""
+    """Apply `stringify` to a batch of trajectories.
+
+    Args:
+        trajectories (torch.Tensor): Tensor of shape (batch_size, seq_len, 2).
+        decimals (int): Decimal precision.
+
+    Returns:
+        list[str]: List of stringified trajectories.
+    """
     texts = []
     for trajectory in trajectories:
         text = stringify(trajectory, decimals)
@@ -56,7 +86,14 @@ def batch_stringify(trajectories, decimals):
 
 
 def destringify(text):
-    """Convert string format predator and prey positions to numerical format."""
+    """Convert a trajectory string back to numerical tensor format.
+
+    Args:
+        text (str): Encoded trajectory string.
+
+    Returns:
+        torch.Tensor: Tensor of shape (seq_len, 2).
+    """
     num_trajectory = []
     for point in text.split(";"):
         pred, prey = point.split(",")
@@ -67,7 +104,14 @@ def destringify(text):
 
 
 def batch_destringify(texts):
-    """Destringify a batch of texts to return an array of numberical trajectories"""
+    """Convert a batch of encoded strings into numerical trajectories.
+
+    Args:
+        texts (list[str]): List of trajectory strings.
+
+    Returns:
+        torch.Tensor: Tensor of shape (batch_size, seq_len, 2).
+    """
     trajectories = []
     for text in texts:
         try:
@@ -89,8 +133,13 @@ def batch_destringify(texts):
 
 
 def batch_decode(batch_token_ids):
-    """
-    Decode a batch of token ids to restore the corresponding numerical trajectories.
+    """Decode token IDs to numerical trajectories.
+
+    Args:
+        batch_token_ids (torch.Tensor): Token IDs to decode.
+
+    Returns:
+        torch.Tensor: Numerical trajectories of shape (batch_size, seq_len, 2).
     """
     texts = tokenizer.batch_decode(
         batch_token_ids, return_tensors="pt", add_special_tokens=False
@@ -100,8 +149,15 @@ def batch_decode(batch_token_ids):
 
 
 def process_sequences(texts, max_length=512, stride=256):
-    """
-    Tokenize a batch of texts and splits into overlapping chunks using a sliding window.
+    """Tokenize and chunk a batch of strings using a sliding window.
+
+    Args:
+        texts (list[str]): List of input strings.
+        max_length (int): Maximum token length for each chunk.
+        stride (int): Step size for sliding window.
+
+    Returns:
+        torch.Tensor: Tensor of shape (num_chunks, max_length).
     """
     all_input_ids = []
     for text in texts:
@@ -124,14 +180,27 @@ def process_sequences(texts, max_length=512, stride=256):
 
 
 class Preprocessor:
+    """A utility class for encoding and decoding predator-prey trajectories."""
+
     def __init__(self, decimals):
+        """
+        Args:
+            decimals (int): Number of decimal places to use for string conversion.
+        """
         self.decimals = decimals
         self.alpha = None
 
     def encode(self, trajectories, chunk=False, max_length=512, stride=256):
-        """
-        Encode from numerical trajectories to token ids. Set scaling coefficient alpha.
-        Apply Chunking.
+        """Convert numerical trajectories into token IDs.
+
+        Args:
+            trajectories (torch.Tensor): Tensor of shape (batch_size, seq_len, 2).
+            chunk (bool): Whether to apply token chunking. Defaults to False.
+            max_length (int): Max token length if chunking is enabled.
+            stride (int): Sliding window stride if chunking is enabled.
+
+        Returns:
+            torch.Tensor: Encoded token IDs.
         """
         # Scale
         scaled_trajectories, self.alpha = scale(trajectories)
@@ -151,7 +220,14 @@ class Preprocessor:
         return batch_token_ids
 
     def decode(self, batch_token_ids):
-        """Restore the numerical trajectories from a batch of token ids."""
+        """Decode token IDs back into scaled numerical trajectories.
+
+        Args:
+            batch_token_ids (torch.Tensor): Tensor of token IDs.
+
+        Returns:
+            torch.Tensor: Decoded and rescaled trajectories.
+        """
 
         # Detokenize to text
         texts = tokenizer.batch_decode(
