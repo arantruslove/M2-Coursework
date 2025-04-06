@@ -10,6 +10,18 @@ from m2_utilities.data.preprocessor import valid_tokens
 
 
 class MaxSemicolonCriteria(StoppingCriteria):
+    """Stopping criteria that halts generation after a specified number of semicolons.
+
+    This is used to terminate generation after generating `n_points` time steps, where
+    each step is expected to end with a semicolon token.
+
+    Additionally, generation will also stop early if an invalid token is produced.
+
+    Args:
+        input_ids (torch.Tensor): Initial input IDs to initialize per-sequence counters.
+        n_points (int): Number of target data points to generate.
+    """
+
     def __init__(self, input_ids, n_points):
         self.max_semicolons = n_points + 1
         self.n_semicolons = torch.zeros(len(input_ids), dtype=torch.int)
@@ -30,6 +42,12 @@ class MaxSemicolonCriteria(StoppingCriteria):
 
 
 class OnlyAllowedTokens(LogitsProcessor):
+    """Logits processor that masks all tokens not in the allowed list.
+
+    This ensures that during generation, only tokens representing valid numeric
+    characters or delimiters (e.g., commas, semicolons) can be produced.
+    """
+
     def __init__(self):
         self.allowed_token_ids = list(valid_tokens)
 
@@ -42,8 +60,22 @@ class OnlyAllowedTokens(LogitsProcessor):
 
 
 def stopping_criteria(input_ids, n_points):
+    """Create a stopping criteria list for controlling generation termination.
+
+    Args:
+        input_ids (torch.Tensor): Initial token IDs for the batch.
+        n_points (int): Desired number of forecasted time steps.
+
+    Returns:
+        StoppingCriteriaList: List with the MaxSemicolonCriteria applied.
+    """
     return StoppingCriteriaList([MaxSemicolonCriteria(input_ids, n_points)])
 
 
 def logits_processor():
+    """Create a logits processor list for filtering invalid tokens.
+
+    Returns:
+        LogitsProcessorList: List with OnlyAllowedTokens applied.
+    """
     return LogitsProcessorList([OnlyAllowedTokens()])
