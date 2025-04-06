@@ -16,6 +16,7 @@ def main():
     # Obtaining hyperparameters based off of 'config_no'
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_no", type=int, required=True)
+    parser.add_argument("--wandb", type=bool, default=False)
     args = parser.parse_args()
     params = hyperparam_options[args.config_no]
     print(params)
@@ -49,7 +50,10 @@ def main():
     apply_lora(model, params["lora_rank"])
 
     # Initialise wandb
-    wandb.init(project="M2 Coursework", config=params)
+    if args.wandb:
+        wandb.init(project="M2 Coursework", config=params)
+    else:
+        wandb = None
 
     # Train the model and save
     try:
