@@ -7,7 +7,7 @@ COPY . .
 # Installing requirements
 RUN pip install -r requirements.txt
 
-# Installing 21_utilities as an editable package
+# Installing m2_utilities as an editable package
 RUN pip install -e .
 
 # Start the Jupyter notebooks on port 8888

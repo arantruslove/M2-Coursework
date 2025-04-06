@@ -1,4 +1,5 @@
 hyperparam_options = {
+    # Untuned Qwen2.5
     0: {
         "lr": None,
         "lora_rank": None,
@@ -9,6 +10,7 @@ hyperparam_options = {
         "eval_interval": None,
         "max_steps": None,
     },
+    # Initial training run
     1: {
         "lr": 1e-5,
         "lora_rank": 4,
@@ -19,6 +21,7 @@ hyperparam_options = {
         "eval_interval": 200,
         "max_steps": 10000,
     },
+    # Hyperparameter grid search (2-12)
     2: {
         "lr": 1e-5,
         "lora_rank": 2,
@@ -129,6 +132,7 @@ hyperparam_options = {
         "eval_interval": float("inf"),
         "max_steps": 880,
     },
+    # Final training run
     13: {
         "lr": 1e-4,
         "lora_rank": 8,
