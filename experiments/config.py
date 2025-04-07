@@ -19,7 +19,7 @@ hyperparam_options = {
         "batch_size": 4,
         "train_size": 850,
         "eval_interval": 200,
-        "max_steps": 10000,
+        "max_steps": 1085,
     },
     # Hyperparameter grid search (2-12)
     2: {
@@ -141,6 +141,6 @@ hyperparam_options = {
         "batch_size": 4,
         "train_size": 850,
         "eval_interval": 200,
-        "max_steps": 30000,
+        "max_steps": 2499,
     },
 }
