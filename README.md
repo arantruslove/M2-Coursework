@@ -1,6 +1,7 @@
 # M2 Coursework
 
-Report: https://github.com/arantruslove/M2-Coursework/blob/main/report/M2_Report.pdf
+Report: https://github.com/arantruslove/M2-Coursework/blob/main/report/M2_Report.pdf.
+
 This README contains instructions on how to setup and run the M2 coursework project.
 
 ## Installation
